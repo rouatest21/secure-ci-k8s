@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ci-secure-api
+  namespace: secure-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ci-api
+  template:
+    metadata:
+      labels:
+        app: ci-api
+    spec:
+      containers:
+      - name: ci-api
+        image: $DOCKER_USER/secure-ci-k8s-api:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: jwt-secret
