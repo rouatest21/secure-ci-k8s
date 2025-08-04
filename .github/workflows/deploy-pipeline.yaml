@@ -12,23 +12,33 @@ jobs:
       IMAGE_NAME: ${{ secrets.DOCKER_USER }}/secure-ci-k8s-api:latest
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: Build & push Docker image
+      - name: 🐳 Build & push Docker image
         run: |
           echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
           docker build -t $IMAGE_NAME ./backend-api
           docker push $IMAGE_NAME
 
-      - name: Set up kubeconfig
+      - name: ⚙️ Set up kubeconfig
         run: |
           echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > kconfig
           chmod 600 kconfig
 
-      - name: Deploy to K3s
+      - name: 📦 Create namespaces
         run: |
-          kubectl --kubeconfig=kconfig apply -f kube-deployment
-          kubectl --kubeconfig=kconfig apply -f kube-monitoring/namespace.yaml
-          kubectl --kubeconfig=kconfig apply -f kube-monitoring/
+          kubectl --kubeconfig=kconfig apply -f kube-deployment/namespace.yaml
+          kubectl --kubeconfig=kconfig apply -f monitoring-deployment/namespace.yaml
+
+      - name: 🚀 Deploy application
+        run: |
+          kubectl --kubeconfig=kconfig apply -f kube-deployment/
+
+      - name: 📊 Deploy monitoring stack
+        run: |
+          kubectl --kubeconfig=kconfig apply -f monitoring-deployment/
+
+      - name: 🔄 Check rollout status
+        run: |
           kubectl --kubeconfig=kconfig rollout status deployment/ci-api -n secure-app
